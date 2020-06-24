@@ -20,7 +20,6 @@ def lkDemo(img_path):
 def displayOpticalFlow(img: np.ndarray, pts: np.ndarray, uvs: np.ndarray):
     plt.imshow(img, cmap='gray')
     plt.quiver(pts[:, 0], pts[:, 1], uvs[:, 0], uvs[:, 1], color='r')
-
     plt.show()
 
 
@@ -87,10 +86,10 @@ def blendDemo():
 
 def main():
     img_path = 'input/boxman.jpg'
-    lkDemo(img_path)
-    pyrGaussianDemo('input/pyr_bit.jpg')
+    #lkDemo(img_path)
+    #pyrGaussianDemo('input/pyr_bit.jpg')
     pyrLaplacianDemo('input/pyr_bit.jpg')
-    blendDemo()
+    #blendDemo()
 
 
 if __name__ == '__main__':
