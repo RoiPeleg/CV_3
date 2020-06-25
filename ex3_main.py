@@ -88,8 +88,8 @@ def main():
     img_path = 'input/boxman.jpg'
     #lkDemo(img_path)
     #pyrGaussianDemo('input/pyr_bit.jpg')
-    pyrLaplacianDemo('input/pyr_bit.jpg')
-    #blendDemo()
+    #pyrLaplacianDemo('input/pyr_bit.jpg')
+    blendDemo()
 
 
 if __name__ == '__main__':

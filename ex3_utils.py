@@ -47,20 +47,17 @@ def laplaceianReduce(img: np.ndarray, levels: int = 4) -> List[np.ndarray]:
     :param levels: Pyramid depth
     :return: Laplacian Pyramid (list of images)
     """
-    ker = cv2.getGaussianKernel(5, 1.1)
-    ker = (ker * ker.T)
-    ker = ker / ker.sum()
-    pyrlst = [img - cv2.filter2D(img, -1, ker)]
-    ls = [img]
-    for i in range(1, levels):
+    ls = gaussianPyr(img, levels)
+    pyrlst = [ls[0]]
+    im = img
+    for i in range(1, levels-1):
         if img.ndim == 3:
-            temp = cv2.filter2D(ls[i - 1][::2, ::2, :], -1, ker)
-            ls.append(ls[i - 1][::2, ::2, :].copy())
-            pyrlst.append(ls[i - 1][::2, ::2, :] - temp)
+            im = im[::2, ::2, :]
+            pyrlst.append(ls[i] - im)
         else:
-            temp = cv2.filter2D(ls[i - 1][::2, ::2], -1, ker)
-            ls.append(ls[i - 1][::2, ::2].copy())
-            pyrlst.append(ls[i - 1][::2, ::2] - temp)
+            im = im[::2, ::2]
+            pyrlst.append(ls[i] - im)
+    pyrlst.append(im[::2,::2])
     return pyrlst
 
 
@@ -71,16 +68,15 @@ def laplaceianExpand(lap_pyr: List[np.ndarray]) -> np.ndarray:
     :return: Original image
     """
     i = -1
-    gu = [lap_pyr[-1]*2]
     lap_pyr.reverse()
+    gu = [lap_pyr[0]]
     ker = cv2.getGaussianKernel(5, 1.1)
     ker = ker * ker.T
-    ker = (ker / ker.sum()) * 4
+    ker = (ker / ker.sum()) * 2
     for I in lap_pyr:
         if i != -1:
             gu.append(I + gaussExpand(gu[i], ker))
         i += 1
-    print(len(gu), len(lap_pyr))
     return gu[-1]
 
 
@@ -92,8 +88,11 @@ def gaussianPyr(img: np.ndarray, levels: int = 4) -> List[np.ndarray]:
     :return: Gaussian pyramid (list of images)
     """
     pyrlst = [img]
+    ker = cv2.getGaussianKernel(5, 1.1)
+    ker = ker * ker.T
+    ker /= ker.sum()
     for i in range(1, levels):
-        temp = cv2.filter2D(pyrlst[i - 1], -1, cv2.getGaussianKernel(5, 0.3 * (4 * 0.5 - 1) + 0.8))
+        temp = cv2.filter2D(pyrlst[i - 1], -1, ker)
         pyrlst.append(temp[::2, ::2].copy())
     return pyrlst
 
@@ -125,7 +124,7 @@ def pyrBlend(img_1: np.ndarray, img_2: np.ndarray, mask: np.ndarray, levels: int
     """
     ker = cv2.getGaussianKernel(5, 1.1)
     ker = ker * ker.T
-    ker = (ker / ker.sum())*4
+    ker = (ker / ker.sum()) *2
     im1_p = laplaceianReduce(img_1, levels)
     im2_p = laplaceianReduce(img_2, levels)
     mask_p = gaussianPyr(mask, levels)
@@ -134,13 +133,10 @@ def pyrBlend(img_1: np.ndarray, img_2: np.ndarray, mask: np.ndarray, levels: int
     mask_p.reverse()
     merg = [(im1_p[0] * mask_p[0]) + (1 - mask_p[0]) * im2_p[0]]
     for i in range(1, levels):
-        last = gaussExpand(merg[i-1], ker)
+        last = gaussExpand(merg[i - 1], ker)
         if i == levels - 1:
             last = last[:-1, :-1, :].copy()
         merg.append(last + (im1_p[i] * mask_p[i]) + (1 - mask_p[i]) * im2_p[i])
     merg.reverse()
-    t = np.zeros((merg[0].shape[0]+1, merg[0].shape[1]+1, 3))
-    t[:merg[0].shape[0], :merg[0].shape[1], :] = merg[0].copy()
-    merg[0] = t
-    result = laplaceianExpand(merg)[:-1, :-1]
+    result = merg[0]
     return img_1 * mask + (1 - mask) * img_2, result
